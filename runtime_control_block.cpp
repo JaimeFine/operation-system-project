@@ -23,11 +23,6 @@ public:
     RuntimeControlBlock(unsigned int id, const string &name)
         : id(id), name(name), time(0), state(State::Created) {}
 
-    void run(unsigned int slice) {
-        time += slice;
-        state = State::Running;
-    }
-
     void readya() {
         state = State::ReadyActive;
     }
@@ -50,7 +45,7 @@ public:
         << time << endl;
     }
 
-    void suspend() {
+    void active() {
         if (state == State::ReadySuspend) {
             state = State::ReadyActive;
         } else if (state == State::BlockedSuspend) {
@@ -59,7 +54,7 @@ public:
             cout << "Error in activation!" << endl;
         }
     }
-    void active() {
+    void suspend() {
         if (state == State::ReadyActive) {
             state = State::ReadySuspend;
         } else if (state == State::BlockedActive) {
@@ -70,18 +65,18 @@ public:
     }
     void block() {
         if (state == State::ReadyActive) {
-            state = State::ReadySuspend;
-        } else if (state == State::BlockedActive) {
+            state = State::BlockedActive;
+        } else if (state == State::ReadySuspend) {
             state = State::BlockedSuspend;
         } else {
             cout << "Error in suspension!" << endl;
         }
     }
     void wakeup() {
-        if (state == State::BlockedActive) {
+        if (state == State::BlockedSuspend) {
             state = State::ReadySuspend;
-        } else if (state == State::BlockedSuspend) {
-            state = State::ReadySuspend;
+        } else if (state == State::BlockedActive) {
+            state = State::ReadyActive;
         } else {
             cout << "Error in wakeup!" << endl;
         }
