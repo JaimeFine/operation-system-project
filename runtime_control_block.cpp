@@ -5,14 +5,16 @@
 
 using namespace std;
 
-enum class State {
-    Created,
-    ReadyActive,
-    ReadySuspend,
+enum class ExecState {
+    Ready,
     Running,
-    BlockedActive,
-    BlockedSuspend,
+    Blocked,
     Finished
+};
+
+enum class Residency {
+    Active,
+    Suspended
 };
 
 // Process Contrl Block (PCB)
@@ -22,7 +24,9 @@ private:
     string name;    // External label
     int total_time;
     int executed_time;
-    State state;
+
+    ExecState exec;
+    Residency mem;
 
 public:
     Process(int pid, const string& pname, int runtime)
@@ -30,43 +34,76 @@ public:
           name(pname),
           total_time(runtime),
           executed_time(0),
-          state(State::Ready) {}
+          exec(ExecState::Ready),
+          mem(Residency::Active) {}
 
     int getID() const { return id; }
     string getName() const { return name; }
-    State getState() const { return state; }
+    ExecState getExecState() const { return exec; }
+    Residency getResidency() const { return mem; }
+
+    bool isRunnable() const {
+        return exec == ExecState::Ready && mem == Residency::Active;
+    }
 
     bool isFinished() const {
-        return executed_time >= total_time;
+        return exec == ExecState::Finished;
     }
 
     void run(int quantum) {
-        state = State::Running;
+        if (!isRunnable()) {
+            cout << "[ERROR] PID "
+                 << id
+                 << " not runnable.\n";
+            return;
+        }
+
+        exec = ExecState::Running;
 
         int remain = total_time - executed_time;
         int slice = min(remain, quantum);
 
         executed_time += slice;
 
-        cout << "[RUN] Process "
-             << id << " (" << name << ") ran for "
+        cout << "[RUN] PID "
+             << id
+             << " (" << name << ") executed "
              << slice << " ticks. "
-             << executed_time << "/" << total_time
+             << executed_time
+             << "/"
+             << total_time
              << endl;
 
-        if (isFinished()) {
-            state = State::Finished;
+        if (executed_time >= total_time) {
+            exec = ExecState::Finished;
         } else {
-            state = State::Ready;
+            exec = ExecState::Ready;
         }
     }
 
-    void readya() {
-        state = State::ReadyActive;
+    void block() {
+        if (exec == ExecState::Running ||
+            exec == ExecState::Ready) {
+            exec = ExecState::Blocked;
+        }
     }
 
-    void readys() {
-        state = State::ReadySuspend;
+    void wakeup() {
+        if (exec == ExecState::Blocked) {
+            exec = ExecState::Ready;
+        }
+    }
+
+    void suspend() {
+        if (mem == Residency::Active) {
+            mem = Residency::Suspended;
+        }
+    }
+
+    void activate() {
+        if (mem == Residency::Suspended) {
+            mem = Residency::Active;
+        }
     }
     
     void print() const {
@@ -77,51 +114,34 @@ public:
              << endl;
     }
 
-    void active() {
-        if (state == State::ReadySuspend) {
-            state = State::ReadyActive;
-        } else if (state == State::BlockedSuspend) {
-            state = State::BlockedActive;
-        } else {
-            cout << "Error in activation!" << endl;
+    ~Process() {};
+
+private:
+    string execToString() const {
+        switch (exec) {
+            case ExecState::Ready: return "Ready";
+            case ExecState::Running: return "Running";
+            case ExecState::Blocked: return "Blocked";
+            case ExecState::Finished: return "Finished";
         }
-    }
-    void suspend() {
-        if (state == State::ReadyActive) {
-            state = State::ReadySuspend;
-        } else if (state == State::BlockedActive) {
-            state = State::BlockedSuspend;
-        } else {
-            cout << "Error in suspension!" << endl;
-        }
-    }
-    void block() {
-        if (state == State::ReadyActive) {
-            state = State::BlockedActive;
-        } else if (state == State::ReadySuspend) {
-            state = State::BlockedSuspend;
-        } else {
-            cout << "Error in suspension!" << endl;
-        }
-    }
-    void wakeup() {
-        if (state == State::BlockedSuspend) {
-            state = State::ReadySuspend;
-        } else if (state == State::BlockedActive) {
-            state = State::ReadyActive;
-        } else {
-            cout << "Error in wakeup!" << endl;
-        }
+        return "Unknown";
     }
 
-    ~Process() {};
+    string memToString() const {
+        switch (mem) {
+            case Residency::Active: return "Active";
+            case Residency::Suspended: return "Suspended";
+        }
+        return "Unknown";
+    }
 };
 
 // Runtime Scheduler
 class RuntimeSystem {
 private:
     queue<Process*> readyQueue;
-    vector<Process*> blockedList;
+    vector<Process*> allProcesses;
+
     int quantum;
     int clock;
 
@@ -130,34 +150,31 @@ public:
         : quantum(q), clock(0) {}
 
     void addProcess(Process* p) {
-        readyQueue.push(p);
+        allProcesses.push_back(p);
         cout << "[ADD] Process "
              << p->getID()
-             << " added to ready queue."
+             << " added."
              << endl;
-    }
-
-    void blockCurrent(Process* p) {
-        p->block();
-        blockedList.push_back(p);
-
-        cout << "[BLOCK] Process "
-             << p->getID()
-             << " moved to blocked list."
-             << endl;
-    }
-
-    void wakeAllBlocked() {
-        for (auto p : blockedList) {
-            p->wakeup();
+        
+        if (p->isRunnable()) {
             readyQueue.push(p);
-
-            cout << "[WAKEUP] Process "
+            cout << "[READY] Process "
                  << p->getID()
-                 << " returned to ready queue."
+                 << " added."
                  << endl;
         }
-        blockedList.clear();
+    }
+
+    void rebuildReadyQueue() {
+        queue<Process*> fresh;
+
+        for (auto p : allProcesses) {
+            if (p->isRunnable()) {
+                fresh.push(p);
+            }
+        }
+
+        readyQueue = fresh;
     }
 
     void run() {
@@ -174,7 +191,7 @@ public:
             current->run(quantum);
             clock += quantum;
 
-            if (current->getState() == State::Finished) {
+            if (current->getExecState() == ExecState::Finished) {
                 cout << "[EXIT] Process "
                      << current->getID()
                      << " finished."
