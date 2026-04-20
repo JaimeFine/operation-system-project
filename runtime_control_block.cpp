@@ -2,6 +2,11 @@
 #include <string>
 #include <queue>
 #include <vector>
+#include <thread>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <memory>
 
 using namespace std;
 
@@ -50,7 +55,7 @@ public:
         return exec == ExecState::Finished;
     }
 
-    void run(int quantum) {
+    int run(int quantum) {
         if (!isRunnable()) {
             cout << "[ERROR] PID "
                  << id
@@ -79,6 +84,8 @@ public:
         } else {
             exec = ExecState::Ready;
         }
+
+        return slice;
     }
 
     void block() {
@@ -140,7 +147,7 @@ private:
 class RuntimeSystem {
 private:
     queue<Process*> readyQueue;
-    vector<Process*> allProcesses;
+    vector<unique_ptr<Process>> allProcesses;
 
     int quantum;
     int clock;
@@ -149,47 +156,34 @@ public:
     RuntimeSystem(int q)
         : quantum(q), clock(0) {}
 
-    void addProcess(Process* p) {
-        allProcesses.push_back(p);
+    void addProcess(unique_ptr<Process> p) {
         cout << "[ADD] Process "
              << p->getID()
              << " added."
              << endl;
         
         if (p->isRunnable()) {
-            readyQueue.push(p);
+            readyQueue.push(p.get());
             cout << "[READY] Process "
                  << p->getID()
                  << " added."
                  << endl;
         }
-    }
-
-    void rebuildReadyQueue() {
-        queue<Process*> fresh;
-
-        for (auto p : allProcesses) {
-            if (p->isRunnable()) {
-                fresh.push(p);
-            }
-        }
-
-        readyQueue = fresh;
+        allProcesses.push_back(move(p));
     }
 
     void run() {
-        cout << "\n===== Runtime Started =====\n";
+        cout << "\n===== Scheduler Started =====\n";
 
         while (!readyQueue.empty()) {
             Process* current = readyQueue.front();
             readyQueue.pop();
 
-            cout << "\n[CLOCK " << clock << "] Dispatching PID "
+            cout << "[CLOCK " << clock << "] Dispatching PID "
                  << current->getID()
                  << endl;
 
-            current->run(quantum);
-            clock += quantum;
+            clock += current->run(quantum);
 
             if (current->getExecState() == ExecState::Finished) {
                 cout << "[EXIT] Process "
@@ -200,6 +194,83 @@ public:
                 readyQueue.push(current);
             }
         }
-        cout << "\n===== Runtime Finished =====\n";
+        cout << "\n===== Scheduler Finished =====\n";
     }
 };
+
+class OSMessageQueue {
+private:
+    queue<int> buffer;
+    const unsigned int maxSize;
+    mutex mtx;
+    condition_variable cv_producer;
+    condition_variable cv_consumer;
+
+public:
+    OSMessageQueue(unsigned int size) : maxSize(size) {}
+
+    // Producer
+    void produce(int item, int pid) {
+        unique_lock<mutex> lock(mtx);
+
+        cv_producer.wait(lock, [this]() {
+            return buffer.size() < maxSize;
+        });
+
+        buffer.push(item);
+        cout << "[PID " << pid << " : PRODUCER] Inserted job: "
+             << item << " | Queue size: " << buffer.size()
+             << "/" << maxSize << endl;
+
+        cv_consumer.notify_one();
+    }
+
+    // Consumer
+    int consume(int pid) {
+        unique_lock<mutex> lock(mtx);
+        cv_consumer.wait(lock, [this]() {
+            return !buffer.empty();
+        });
+
+        int item = buffer.front();
+        buffer.pop();
+        cout << "[PID " << pid << " : CONSUMER] Processed job: "
+             << item << " | Queue size: " << buffer.size()
+             << "/" << maxSize << endl;
+
+        cv_producer.notify_one();
+        return item;
+    }
+};
+
+int main() {
+    RuntimeSystem kernel(5);
+    kernel.addProcess(make_unique<Process>(1, "Init", 12));
+    kernel.addProcess(make_unique<Process>(2, "Shell", 7));
+    
+    kernel.run();
+
+    cout << "\n===== Starting IPC Simulation (Producer-Consumer) =====\n";
+    OSMessageQueue ipc_bus(3); // Buffer size of 3
+
+    // Launching concurrent "Processes" using C++ threads
+    thread producer([&]() {
+        for(int i = 0; i < 5; ++i) {
+            this_thread::sleep_for(chrono::milliseconds(100));
+            ipc_bus.produce(i + 100, 301);
+        }
+    });
+
+    thread consumer([&]() {
+        for(int i = 0; i < 5; ++i) {
+            this_thread::sleep_for(chrono::milliseconds(150));
+            ipc_bus.consume(401);
+        }
+    });
+
+    producer.join();
+    consumer.join();
+
+    cout << "\n[KERNEL] System Shutdown Cleanly.\n";
+    return 0;
+}
