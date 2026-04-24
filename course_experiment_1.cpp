@@ -65,11 +65,11 @@ public:
                 continue;
             }
 
-            runningProcess = readyQueue.front()     // FCFS algorithm
+            runningProcess = readyQueue.front();    // FCFS algorithm
             readyQueue.pop();
             runningProcess->state = ExecState::Running;
 
-            runningProcess->restoreContext()
+            runningProcess->restoreContext();
 
             cout << "\n[RUNNING] PID " << runningProcess->id
                  << " (" << runningProcess->name << ")" << endl;
@@ -82,7 +82,7 @@ public:
                 runningProcess->state = ExecState::Blocked;
                 runningProcess->saveContext();
                 blockedQueue.push_back(runningProcess);
-                cout << "[EVENT] Process Blocked.\n"
+                cout << "[EVENT] Process Blocked.\n";
             } else {
                 int slice = min(
                     quantum,
