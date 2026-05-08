@@ -2,8 +2,8 @@
 #include <vector>
 #include <queue>
 #include <memory>
-#include <conio.h>
 #include <string>
+#include <cctype>
 
 using namespace std;
 
@@ -18,7 +18,7 @@ class Process {
 public:
     int id;
     string name;
-    int total;
+    int total_time;
     int executed_time;
     ExecState state;
     int pc;
@@ -30,14 +30,17 @@ public:
     void saveContext() {
         cout << "[SAVE] Saving PC=" << pc << " for PID " << id << endl;
     }
+
     void restoreContext() {
         cout << "[RESTORE] Restoring PC=" << pc << " for PID " << id << endl;
     }
+
     void printPCB() const {
         string states[] = {"Ready", "Running", "Blocked", "Finished"};
-        cout << "[PCB] ID:" << id << " Name:" << name 
-            << " Time:" << executed_time << "/" << total 
-            << " State:" << states[(int)state] << " PC:" << pc << endl;
+        cout << "[PCB] ID:" << id << " Name:" << name
+             << " Time:" << executed_time << "/" << total_time
+             << " State:" << states[(int)state]
+             << " PC:" << pc << endl;
     }
 };
 
@@ -57,15 +60,19 @@ public:
 
     void schedule() {
         while (!readyQueue.empty() || !blockedQueue.empty()) {
+
             if (readyQueue.empty()) {
                 cout << "\n[NOTE] No ready processes. "
                      << "Press 'W' to wakeup blocked processes..." << endl;
-                if (toupper(getch()) == 'W')
+
+                if (toupper(getchar()) == 'W')
                     wakeupAll();
+
+                getchar(); // consume Enter
                 continue;
             }
 
-            runningProcess = readyQueue.front();    // FCFS algorithm
+            runningProcess = readyQueue.front();
             readyQueue.pop();
             runningProcess->state = ExecState::Running;
 
@@ -73,21 +80,29 @@ public:
 
             cout << "\n[RUNNING] PID " << runningProcess->id
                  << " (" << runningProcess->name << ")" << endl;
-            cout << "Press 'B' to Block (Esc simulation), 'Enter' to Finish "
-                 << "slice, 'C' to Kill\n";
+            cout << "Press 'B' to Block, 'Enter' to Finish slice, 'C' to Kill\n";
 
-            char input = toupper(getch());
+            char input = toupper(getchar());
+
+            if (input != '\n')
+                getchar();
 
             if (input == 'B') {
                 runningProcess->state = ExecState::Blocked;
                 runningProcess->saveContext();
                 blockedQueue.push_back(runningProcess);
                 cout << "[EVENT] Process Blocked.\n";
-            } else {
+            }
+            else if (input == 'C') {
+                runningProcess->state = ExecState::Finished;
+                cout << "[KILL] Process Terminated.\n";
+            }
+            else {
                 int slice = min(
                     quantum,
                     runningProcess->total_time - runningProcess->executed_time
                 );
+
                 runningProcess->executed_time += slice;
                 runningProcess->pc += slice;
 
@@ -101,6 +116,7 @@ public:
                     cout << "[TIMEOUT] Slice finished, back to Ready Queue.\n";
                 }
             }
+
             runningProcess = nullptr;
         }
     }
@@ -110,6 +126,7 @@ public:
             p->state = ExecState::Ready;
             readyQueue.push(p);
         }
+
         blockedQueue.clear();
         cout << "[EVENT] All processes awakened.\n";
     }
@@ -117,8 +134,12 @@ public:
 
 int main() {
     int q, n;
-    cout << "Quantum: "; cin >> q;
-    cout << "Process Count: "; cin >> n;
+
+    cout << "Quantum: ";
+    cin >> q;
+
+    cout << "Process Count: ";
+    cin >> n;
 
     RuntimeSystem os(q);
     vector<unique_ptr<Process>> pcbs;
@@ -126,22 +147,16 @@ int main() {
     for (int i = 0; i < n; ++i) {
         int pid, runtime;
         string name;
-        cout << "Input for P" << i+1 << ": ";
+
+        cout << "Input for P" << i + 1 << ": ";
         cin >> pid >> name >> runtime;
 
         pcbs.push_back(make_unique<Process>(pid, name, runtime));
         os.addProcess(pcbs.back().get());
     }
 
-    getch();
+    getchar();
     os.schedule();
 
     return 0;
 }
-
-/*
-Command Notes:
-> B is to block
-> Enter is to finish slice
-> W is to wakeup
-*/
