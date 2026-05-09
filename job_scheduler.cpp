@@ -26,7 +26,7 @@ typedef struct node
 } job;
 
 job jobs[MAXJOB];
-int job_number;
+int job_number = 0;
 
 void read_file() {
 	string file, text;
@@ -38,9 +38,10 @@ void read_file() {
 		exit(0);
 	} else {
 		getline(fin, text);
-		while (fin.good()) {
-			fin >> jobs[job_number].id >> jobs[job_number].arrival_time
-				>> jobs[job_number].total_time >> jobs[job_number].priority;
+		while (fin >> jobs[job_number].id
+				>> jobs[job_number].arrival_time
+				>> jobs[job_number].total_time
+				>> jobs[job_number].priority) {
 			job_number++;
 		}
 		fin.close();
@@ -99,7 +100,7 @@ int find_shortest_job(job jobs[], int count, int now) {
 	return shortest_idx;
 }
 
-void SFJ(job jobs[], int count) {
+void SJF(job jobs[], int count) {
 	int now = 0;
 	int completed = 0;
 	double sumwait = 0, sumtr = 0, sumwtr = 0;
@@ -142,11 +143,12 @@ void SFJ(job jobs[], int count) {
     cout << "\nAverage Weighted Turnaround Time: " << sumwtr / count << "\n";
 }
 
-void compute_response_ratio(job jobs) {
-		jobs.response_ratio = 1 + jobs.wait_time / jobs.exec_time;
+void compute_response_ratio(job& jobs, int now) {
+	jobs.wait_time = now - jobs.arrival_time;
+	jobs.response_ratio = 1.0 + (double)jobs.wait_time / jobs.total_time;
 }
 
-int find_small_response_ratio(job jobs[], int count, int now) {
+int find_highest_response_ratio(job jobs[], int count, int now) {
 	vector<int> available = get_arrived_jobs(jobs, count, now);
 
 	if (available.empty()) {
@@ -154,20 +156,20 @@ int find_small_response_ratio(job jobs[], int count, int now) {
 	}
 
 	for (auto i : available) {
-		compute_response_ratio(jobs[i]);
+		compute_response_ratio(jobs[i], now);
 	}
 
-	int smallest_idx = available[0];
-	int min_ratio = jobs[smallest_idx].response_ratio;
+	int best_idx = available[0];
+	int max_ratio = jobs[best_idx].response_ratio;
 
 	for (size_t i = 1; i < available.size(); i++) {
 		int idx = available[i];
-		if (jobs[idx].response_ratio < min_ratio) {
-			min_ratio = jobs[idx].total_time;
-			smallest_idx = idx;
+		if (jobs[idx].response_ratio < max_ratio) {
+			max_ratio = jobs[idx].total_time;
+			best_idx = idx;
 		}
 	}
-	return smallest_idx;
+	return best_idx;
 }
 
 void HRRF(job jobs[], int count) {
@@ -175,10 +177,10 @@ void HRRF(job jobs[], int count) {
 	int completed = 0;
 	double sumwait = 0, sumtr = 0, sumwtr = 0;
 
-	cout << "\n--- This is Shortest Job First (SFJ) Scheduling ---\n";
+	cout << "\n--- This is Highest Response Ratio First (HRRF) Scheduling ---\n";
 
 	while (completed < count) {
-		int idx = find_small_response_ratio(jobs, count, now);
+		int idx = find_highest_response_ratio(jobs, count, now);
 		
 		if (idx == -1) {
 			now++;
@@ -213,6 +215,71 @@ void HRRF(job jobs[], int count) {
     cout << "\nAverage Weighted Turnaround Time: " << sumwtr / count << "\n";
 }
 
-void HPF() {
-	// Random set priority?
+int find_highest_priority(job jobs[], int count, int now) {
+    vector<int> available = get_arrived_jobs(jobs, count, now);
+
+    if (available.empty()) {
+        return -1;
+    }
+
+    int best_idx = available[0];
+    int highest_priority = jobs[best_idx].priority;
+
+    for (size_t i = 1; i < available.size(); i++) {
+        int idx = available[i];
+
+        if (jobs[idx].priority > highest_priority) {
+            highest_priority = jobs[idx].priority;
+            best_idx = idx;
+        }
+    }
+
+    return best_idx;
+}
+
+void HPF(job jobs[], int count) {
+    int now = 0;
+    int completed = 0;
+    double sumwait = 0, sumtr = 0, sumwtr = 0;
+
+    cout << "\n--- This is Highest Priority First (HPF) Scheduling ---\n";
+
+    while (completed < count) {
+        int idx = find_highest_priority(jobs, count, now);
+
+        if (idx == -1) {
+            now++;
+            continue;
+        }
+
+        job& current_job = jobs[idx];
+
+        current_job.start_time = now;
+        current_job.wait_time = now - current_job.arrival_time;
+
+        now += current_job.total_time;
+        current_job.exec_time = current_job.total_time;
+        current_job.visited = 1;
+        completed++;
+
+        current_job.tr_time = now - current_job.arrival_time;
+        current_job.wtr_time =
+            (double)current_job.tr_time / current_job.total_time;
+
+        cout << "Job " << current_job.id
+             << " started at " << current_job.start_time
+             << ", finished at " << now
+             << " | Wait: " << current_job.wait_time
+             << " | TR: " << current_job.tr_time
+             << " | WTR: " << fixed << setprecision(2)
+             << current_job.wtr_time << "\n";
+
+        sumwait += current_job.wait_time;
+        sumtr += current_job.tr_time;
+        sumwtr += current_job.wtr_time;
+    }
+
+    cout << "\nAverage Waiting Time: " << sumwait / count;
+    cout << "\nAverage Turnaround Time: " << sumtr / count;
+    cout << "\nAverage Weighted Turnaround Time: " << sumwtr / count << "\n";
 }
