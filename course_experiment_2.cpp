@@ -160,12 +160,12 @@ int find_highest_response_ratio(job jobs[], int count, int now) {
 	}
 
 	int best_idx = available[0];
-	int max_ratio = jobs[best_idx].response_ratio;
+	double max_ratio = jobs[best_idx].response_ratio;
 
 	for (size_t i = 1; i < available.size(); i++) {
 		int idx = available[i];
-		if (jobs[idx].response_ratio < max_ratio) {
-			max_ratio = jobs[idx].total_time;
+		if (jobs[idx].response_ratio > max_ratio) {
+			max_ratio = jobs[idx].response_ratio;
 			best_idx = idx;
 		}
 	}
@@ -282,4 +282,43 @@ void HPF(job jobs[], int count) {
     cout << "\nAverage Waiting Time: " << sumwait / count;
     cout << "\nAverage Turnaround Time: " << sumtr / count;
     cout << "\nAverage Weighted Turnaround Time: " << sumwtr / count << "\n";
+}
+
+int main() {
+    int choice;
+    
+    read_file();
+
+    while (true) {
+        cout << "\n================================";
+        cout << "\n   Job Scheduling Simulator";
+        cout << "\n================================";
+        cout << "\n1. Shortest Job First (SJF)";
+        cout << "\n2. Highest Response Ratio (HRRF)";
+        cout << "\n3. Highest Priority First (HPF)";
+        cout << "\n0. Exit";
+        cout << "\nSelect an algorithm: ";
+        cin >> choice;
+
+        if (choice == 0) break;
+
+        init();
+
+        switch (choice) {
+            case 1:
+                SJF(jobs, job_number);
+                break;
+            case 2:
+                HRRF(jobs, job_number);
+                break;
+            case 3:
+                HPF(jobs, job_number);
+                break;
+            default:
+                cout << "Invalid choice. Try again.\n";
+        }
+    }
+
+    cout << "Exiting simulator. Goodbye!\n";
+    return 0;
 }

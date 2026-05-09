@@ -1,0 +1,84 @@
+Enter file name: Job number: 7
+Job ID 	 Arrival time 	 Total Execution time 	 Priority
+1	800	50	0
+2	815	30	1
+3	830	25	2
+4	835	20	2
+5	845	15	2
+6	700	10	1
+7	820	5	0
+[Success] File read!!!
+================================
+   Job Scheduling Simulator
+================================
+1. Shortest Job First (SJF)
+2. Highest Response Ratio (HRRF)
+3. Highest Priority First (HPF)
+0. Exit
+Select an algorithm: [Success] All jobs initialized!!!
+
+--- This is Shortest Job First (SFJ) Scheduling ---
+Job 6 started at 700, finished at 710 | Wait: 0 | TR: 10 | WTR: 1.00
+Job 1 started at 800, finished at 850 | Wait: 0 | TR: 50 | WTR: 1.00
+Job 7 started at 850, finished at 855 | Wait: 30 | TR: 35 | WTR: 7.00
+Job 5 started at 855, finished at 870 | Wait: 10 | TR: 25 | WTR: 1.67
+Job 4 started at 870, finished at 890 | Wait: 35 | TR: 55 | WTR: 2.75
+Job 3 started at 890, finished at 915 | Wait: 60 | TR: 85 | WTR: 3.40
+Job 2 started at 915, finished at 945 | Wait: 100 | TR: 130 | WTR: 4.33
+
+Average Waiting Time: 33.57
+Average Turnaround Time: 55.71
+Average Weighted Turnaround Time: 3.02
+
+================================
+   Job Scheduling Simulator
+================================
+1. Shortest Job First (SJF)
+2. Highest Response Ratio (HRRF)
+3. Highest Priority First (HPF)
+0. Exit
+Select an algorithm: [Success] All jobs initialized!!!
+
+--- This is Highest Response Ratio First (HRRF) Scheduling ---
+Job 6 started at 700, finished at 710 | Wait: 0 | TR: 10 | WTR: 1.00
+Job 1 started at 800, finished at 850 | Wait: 0 | TR: 50 | WTR: 1.00
+Job 7 started at 850, finished at 855 | Wait: 30 | TR: 35 | WTR: 7.00
+Job 2 started at 855, finished at 885 | Wait: 40 | TR: 70 | WTR: 2.33
+Job 5 started at 885, finished at 900 | Wait: 40 | TR: 55 | WTR: 3.67
+Job 4 started at 900, finished at 920 | Wait: 65 | TR: 85 | WTR: 4.25
+Job 3 started at 920, finished at 945 | Wait: 90 | TR: 115 | WTR: 4.60
+
+Average Waiting Time: 37.86
+Average Turnaround Time: 60.00
+Average Weighted Turnaround Time: 3.41
+
+================================
+   Job Scheduling Simulator
+================================
+1. Shortest Job First (SJF)
+2. Highest Response Ratio (HRRF)
+3. Highest Priority First (HPF)
+0. Exit
+Select an algorithm: [Success] All jobs initialized!!!
+
+--- This is Highest Priority First (HPF) Scheduling ---
+Job 6 started at 700, finished at 710 | Wait: 0 | TR: 10 | WTR: 1.00
+Job 1 started at 800, finished at 850 | Wait: 0 | TR: 50 | WTR: 1.00
+Job 3 started at 850, finished at 875 | Wait: 20 | TR: 45 | WTR: 1.80
+Job 4 started at 875, finished at 895 | Wait: 40 | TR: 60 | WTR: 3.00
+Job 5 started at 895, finished at 910 | Wait: 50 | TR: 65 | WTR: 4.33
+Job 2 started at 910, finished at 940 | Wait: 95 | TR: 125 | WTR: 4.17
+Job 7 started at 940, finished at 945 | Wait: 120 | TR: 125 | WTR: 25.00
+
+Average Waiting Time: 46.43
+Average Turnaround Time: 68.57
+Average Weighted Turnaround Time: 5.76
+
+================================
+   Job Scheduling Simulator
+================================
+1. Shortest Job First (SJF)
+2. Highest Response Ratio (HRRF)
+3. Highest Priority First (HPF)
+0. Exit
+Select an algorithm: Exiting simulator. Goodbye!
