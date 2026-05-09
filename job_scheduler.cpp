@@ -141,3 +141,78 @@ void SFJ(job jobs[], int count) {
     cout << "\nAverage Turnaround Time: " << sumtr / count;
     cout << "\nAverage Weighted Turnaround Time: " << sumwtr / count << "\n";
 }
+
+void compute_response_ratio(job jobs) {
+		jobs.response_ratio = 1 + jobs.wait_time / jobs.exec_time;
+}
+
+int find_small_response_ratio(job jobs[], int count, int now) {
+	vector<int> available = get_arrived_jobs(jobs, count, now);
+
+	if (available.empty()) {
+		return -1;
+	}
+
+	for (auto i : available) {
+		compute_response_ratio(jobs[i]);
+	}
+
+	int smallest_idx = available[0];
+	int min_ratio = jobs[smallest_idx].response_ratio;
+
+	for (size_t i = 1; i < available.size(); i++) {
+		int idx = available[i];
+		if (jobs[idx].response_ratio < min_ratio) {
+			min_ratio = jobs[idx].total_time;
+			smallest_idx = idx;
+		}
+	}
+	return smallest_idx;
+}
+
+void HRRF(job jobs[], int count) {
+	int now = 0;
+	int completed = 0;
+	double sumwait = 0, sumtr = 0, sumwtr = 0;
+
+	cout << "\n--- This is Shortest Job First (SFJ) Scheduling ---\n";
+
+	while (completed < count) {
+		int idx = find_small_response_ratio(jobs, count, now);
+		
+		if (idx == -1) {
+			now++;
+			continue;
+		}
+
+		job& current_job = jobs[idx];
+
+		current_job.start_time = now;
+		current_job.wait_time = now - current_job.arrival_time;
+
+		now += current_job.total_time;
+		current_job.exec_time = current_job.total_time;
+		current_job.visited = 1;
+		completed++;
+
+		current_job.tr_time = now - current_job.arrival_time;
+        current_job.wtr_time = (double)current_job.tr_time / current_job.total_time;
+
+		cout << "Job " << current_job.id << " started at " << current_job.start_time 
+             << ", finished at " << now 
+             << " | Wait: " << current_job.wait_time 
+             << " | TR: " << current_job.tr_time 
+             << " | WTR: " << fixed << setprecision(2) << current_job.wtr_time << "\n";
+
+		sumwait += current_job.wait_time;
+		sumtr += current_job.tr_time;
+		sumwtr += current_job.wtr_time;
+	}
+	cout << "\nAverage Waiting Time: " << sumwait / count;
+    cout << "\nAverage Turnaround Time: " << sumtr / count;
+    cout << "\nAverage Weighted Turnaround Time: " << sumwtr / count << "\n";
+}
+
+void HPF() {
+	// Random set priority?
+}
