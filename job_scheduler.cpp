@@ -7,9 +7,6 @@
 using namespace std;
 const int MAXJOB = 50;
 
-job jobs[MAXJOB];
-int job_number;
-
 typedef struct node
 {
 	int id;         	// Job Index
@@ -26,6 +23,9 @@ typedef struct node
 	bool arrived;
 } job;
 
+job jobs[MAXJOB];
+int job_number;
+
 void read_file() {
 	string file, text;
 	cout << "Enter file name: ";
@@ -35,7 +35,7 @@ void read_file() {
 		cout << "[Failed] Failed to open the file!!!\n";
 		exit(0);
 	} else {
-		getline(file, text);
+		getline(fin, text);
 		while (fin.good()) {
 			fin >> jobs[job_number].id >> jobs[job_number].arrival_time
 				>> jobs[job_number].total_time >> jobs[job_number].priority;
@@ -50,7 +50,7 @@ void read_file() {
 		cout << jobs[i].id << "\t" << jobs[i].arrival_time << "\t"
 			<< jobs[i].total_time << "\t" << jobs[i].priority << endl;
 	}
-	cout << "[Success] File read!!!"
+	cout << "[Success] File read!!!";
 }
 
 void init() {
@@ -59,10 +59,10 @@ void init() {
 		jobs[i].wait_time = 0;
 		jobs[i].tr_time = 0;
 		jobs[i].wtr_time = 0.0;
-		jobs[i].run_time = 0;
+		jobs[i].exec_time = 0;
 		jobs[i].visited = 0;
 		jobs[i].arrived = false;
 	}
 
-	cout << "[Success] All jobs initialized!!!\n"
+	cout << "[Success] All jobs initialized!!!\n";
 }
