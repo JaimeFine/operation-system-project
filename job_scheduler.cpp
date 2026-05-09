@@ -3,22 +3,24 @@
 #include <fstream>
 #include <iomanip>
 #include <queue>
+#include <algorithm>
+#include <vector>
 
 using namespace std;
 const int MAXJOB = 50;
 
 typedef struct node
 {
-	int id;         	// Job Index
-	int arrival_time;   // Arrival Time
-	int total_time;     // Total Time
-	int priority;	  	// Priority
-	float excellent;    //响应比
-	int start_time; 	// Start Time
-	int wait_time;      // Waiting Time
-	int tr_time;        // Turnaround Time
-	double wtr_time;   	// Weighted Turnaround Time
-	int exec_time;      // Executed Time
+	int id;         		// Job Index
+	int arrival_time;   	// Arrival Time
+	int total_time;     	// Total Time
+	int priority;	  		// Priority
+	float response_ratio;	// Response Ratio
+	int start_time; 		// Start Time
+	int wait_time;      	// Waiting Time
+	int tr_time;        	// Turnaround Time
+	double wtr_time;   		// Weighted Turnaround Time
+	int exec_time;      	// Executed Time
 	int visited;
 	bool arrived;
 } job;
@@ -65,4 +67,77 @@ void init() {
 	}
 
 	cout << "[Success] All jobs initialized!!!\n";
+}
+
+vector<int> get_arrived_jobs(job job[], int count, int now) {
+	vector<int> available_idx;
+	for (int i = 0; i < count; i++) {
+		if (jobs[i].arrival_time <= now && jobs[i].visited == 0) {
+            available_idx.push_back(i);
+        }
+	}
+	return available_idx;
+}
+
+int find_shortest_job(job jobs[], int count, int now) {
+	vector<int> available = get_arrived_jobs(jobs, count, now);
+
+	if (available.empty()) {
+		return -1;
+	}
+
+	int shortest_idx = available[0];
+	int min_time = jobs[shortest_idx].total_time;
+
+	for (size_t i = 1; i < available.size(); i++) {
+		int idx = available[i];
+		if (jobs[idx].total_time < min_time) {
+			min_time = jobs[idx].total_time;
+			shortest_idx = idx;
+		}
+	}
+	return shortest_idx;
+}
+
+void SFJ(job jobs[], int count) {
+	int now = 0;
+	int completed = 0;
+	double sumwait = 0, sumtr = 0, sumwtr = 0;
+
+	cout << "\n--- This is Shortest Job First (SFJ) Scheduling ---\n";
+
+	while (completed < count) {
+		int idx = find_shortest_job(jobs, count, now);
+		
+		if (idx == -1) {
+			now++;
+			continue;
+		}
+
+		job& current_job = jobs[idx];
+
+		current_job.start_time = now;
+		current_job.wait_time = now - current_job.arrival_time;
+
+		now += current_job.total_time;
+		current_job.exec_time = current_job.total_time;
+		current_job.visited = 1;
+		completed++;
+
+		current_job.tr_time = now - current_job.arrival_time;
+        current_job.wtr_time = (double)current_job.tr_time / current_job.total_time;
+
+		cout << "Job " << current_job.id << " started at " << current_job.start_time 
+             << ", finished at " << now 
+             << " | Wait: " << current_job.wait_time 
+             << " | TR: " << current_job.tr_time 
+             << " | WTR: " << fixed << setprecision(2) << current_job.wtr_time << "\n";
+
+		sumwait += current_job.wait_time;
+		sumtr += current_job.tr_time;
+		sumwtr += current_job.wtr_time;
+	}
+	cout << "\nAverage Waiting Time: " << sumwait / count;
+    cout << "\nAverage Turnaround Time: " << sumtr / count;
+    cout << "\nAverage Weighted Turnaround Time: " << sumwtr / count << "\n";
 }
