@@ -27,7 +27,7 @@ public:
     void release() {
         std::unique_lock<std::mutex> lock(mtx);
         ++count;
-        cv.notidy_one();
+        cv.notify_one();
     }
 };
 
@@ -46,7 +46,7 @@ int g_nReaders = 0;
 // Thread-safe console output function
 void print_msg(const std::string& msg) {
     static std::mutex count_mtx;
-    std::lock_guard<std::mutex> lock(cout_mtx);
+    std::lock_guard<std::mutex> lock(count_mtx);
     std::cout << msg << std::endl;
 }
 
@@ -58,7 +58,7 @@ void ReaderProc(ThreadParam p) {
 
     {
         std::lock_guard<std::mutex> lock(g_mtx);
-        g_nReader++;
+        g_nReaders++;
         if (g_nReaders == 1) {
             g_writeSem.acquire();
         }
@@ -87,16 +87,15 @@ void WriteProc(ThreadParam p) {
 
     print_msg("Writer thread " + std::to_string(p.id) + " begins to write.");
     std::this_thread::sleep_for(std::chrono::seconds(p.duration));
-    print_msg("Writer thread " + std::to_string(p.id) + "finished writing.");
+    print_msg("Writer thread " + std::to_string(p.id) + " finished writing.");
 
     g_writeSem.release();
 }
 
-int main() {
+void reader_writer() {
     std::ifstream infile("test1.txt");
     if (!infile.is_open()) {
         std::cerr << "Error opening test1.txt" << std::endl;
-        return 1;
     }
 
     std::vector<std::thread> threads;
@@ -124,6 +123,56 @@ int main() {
     }
 
     print_msg("All reader and writer have been finished operating");
+}
+
+const int N = 5;
+
+std::mutex forks[N];
+
+// Trying C++20 hahaha
+std::count_semaphore<4> room(4);
+
+void philosopher(int id) {
+    int left = id;
+    int right = (id + 1) % N;
+
+    while (true) {
+        // Thinking
+        std::cout << "Philosopher " << id << " is thinking.\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        // Enter dining room
+        room.acquire();
+
+        // Pick up forks
+        forks[left].lock();
+        forks[rigth].lock();
+
+        // Eat
+        std::cout << "Philosopher " << id << " is eating.\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        // Put down forks
+        forks[right].unlock();
+        forks[left].unlock();
+
+        // Leave room
+        room.release();
+    }
+}
+
+int main() {
+    reader_writer();
+
+    std::vector<std::thread> philosophers;
+
+    for (int i = 0; i < N; ++i) {
+        philosophers.emplace_back(philosopher, i);
+    }
+
+    for (auto& p : philosophers) {
+        p.join();
+    }
 
     return 0;
 }
