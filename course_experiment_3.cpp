@@ -1,5 +1,4 @@
 #include <iostream>
-#include <fstream>
 #include <vector>
 #include <thread>
 #include <mutex>
@@ -35,8 +34,8 @@ public:
 struct ThreadParam {
     int id;
     char type;
-    unsigned int delay;
-    unsigned int duration;
+    int delay;
+    int duration;
 };
 
 // Global synchronization primitives
@@ -94,27 +93,30 @@ void WriterProc(ThreadParam p) {
 }
 
 void reader_writer() {
-    std::ifstream infile("course_experiment_3.txt");
-    if (!infile.is_open()) {
-        std::cerr << "Error opening test1.txt" << std::endl;
-    }
+    std::vector<ThreadParam> tasks = {
+        {1, 'R', 1, 3},
+        {2, 'R', 2, 2},
+        {1, 'W', 3, 4},
+        {3, 'R', 4, 2},
+        {2, 'W', 5, 3},
+        {4, 'R', 6, 1}
+    };
 
     std::vector<std::thread> threads;
-    ThreadParam tempParam;
-
-    print_msg("Reader Priority:");
-
-    while (
-        infile >> tempParam.id >> tempParam.type >>
-        tempParam.delay >> tempParam.duration
-    ) {
-        if (tempParam.type == 'R') {
-            threads.emplace_back(ReaderProc, tempParam);
+    
+    for (const auto& task : tasks) {
+        if (task.type == 'R') {
+            threads.emplace_back(
+                ReaderProc,
+                task
+            );
         } else {
-            threads.emplace_back(WriterProc, tempParam);
+            threads.emplace_back(
+                WriterProc,
+                task
+            );
         }
     }
-    infile.close();
 
     // Join the threads
     for (auto& t : threads) {
@@ -179,37 +181,55 @@ int main() {
 }
 
 /*
+PS C:\Users\13647\OneDrive\Desktop\MiMundo\2026 Spring\operation_system> g++ -std=c++20 course_experiment_3.cpp -o run
 PS C:\Users\13647\OneDrive\Desktop\MiMundo\2026 Spring\operation_system> ./run
-Reader Priority:
+Reader thread 1 sends R require...
+Reader thread 2 sends R require...
+Writer thread 1 sends W require...
+Reader thread 3 sends R require...
+Writer thread 2 sends W require...
+Reader thread 4 sends R require...
+Reader thread 1 begins to read.
+Reader thread 2 begins to read.
+Reader thread 3 begins to read.
+Reader thread 2 finished reading.
+Reader thread 1 finished reading.
+Reader thread 4 begins to read.
+Reader thread 3 finished reading.
+Reader thread 4 finished reading.
+Writer thread 1 begins to write.
+Writer thread 1 finished writing.
+Writer thread 2 begins to write.
+Writer thread 2 finished writing.
 All reader and writer have been finished operating
 Philosopher 0 is thinking.
 Philosopher 1 is thinking.
 Philosopher 2 is thinking.
 Philosopher 3 is thinking.
 Philosopher 4 is thinking.
-Philosopher 3 is eating.
-Philosopher 2 is eating.
-Philosopher 3 is thinking.
-Philosopher 2 is thinking.
+Philosopher 4 is eating.
 Philosopher 1 is eating.
-Philosopher 1 is thinking.
+Philosopher 3 is eating.
 Philosopher 0 is eating.
+Philosopher 4 is thinking.
+Philosopher 1 is thinking.
 Philosopher 0 is thinking.
 Philosopher 4 is eating.
-Philosopher 3 is eating.
-Philosopher 4 is thinking.
+Philosopher 3 is thinking.
 Philosopher 2 is eating.
+Philosopher 1 is eating.
+Philosopher 4 is thinking.
+Philosopher 2 is thinking.
+Philosopher 3 is eating.
+Philosopher 2 is eating.
+Philosopher 0 is eating.
+Philosopher 1 is thinking.
 Philosopher 3 is thinking.
 Philosopher 2 is thinking.
-Philosopher 1 is eating.
-Philosopher 1 is thinking.
-Philosopher 0 is eating.
 Philosopher 4 is eating.
 Philosopher 0 is thinking.
-Philosopher 4 is thinking.
-Philosopher 3 is eating.
-Philosopher 2 is eating.
 Philosopher 1 is eating.
 Philosopher 0 is eating.
-Philosopher 4 is eating.
+Philosopher 3 is eating.
+Philosopher 2 is eating.
 */
