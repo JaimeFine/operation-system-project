@@ -7,6 +7,8 @@
 #include <chrono>
 #include <semaphore>
 
+using namespace std;
+
 class CountingSemaphore {
 private:
     std::mutex mtx;
@@ -164,6 +166,31 @@ void philosopher(int id) {
     }
 }
 
+std::counting_semaphore<1> left_side(1);
+std::counting_semaphore<2> middle(2);
+std::counting_semaphore<1> right_side(1);
+
+void cross_bridge(int id) {
+    print_msg("Person " + to_string(id) + " arrive at left side.");
+
+    left_side.acquire();
+    print_msg("Person " + to_string(id) + " enters left narrow section.");
+    this_thread::sleep_for(chrono::seconds(1));
+    left_side.release();
+
+    middle.acquire();
+    print_msg("Person " + to_string(id) + " enters middle section.");
+    this_thread::sleep_for(chrono::seconds(2));
+    middle.release();
+
+    right_side.acquire();
+    print_msg("Person " + to_string(id) + " crossed the bridge.");
+    this_thread::sleep_for(chrono::seconds(1));
+    right_side.release();
+
+    print_msg("Person " + to_string(id) + " crossed the bridge.");
+}
+
 int main() {
     reader_writer();
 
@@ -176,6 +203,24 @@ int main() {
     for (auto& p : philosophers) {
         p.join();
     }
+
+    vector<thread> people;
+
+    const int NUM_PEOPLE = 10;
+
+    for (int i = 1; i <= NUM_PEOPLE; ++i) {
+
+        people.emplace_back(cross_bridge, i);
+
+        // Small delay to simulate arrivals
+        this_thread::sleep_for(chrono::milliseconds(300));
+    }
+
+    for (auto& t : people) {
+        t.join();
+    }
+
+    print_msg("All people crossed the bridge.");
 
     return 0;
 }
@@ -192,8 +237,8 @@ Reader thread 4 sends R require...
 Reader thread 1 begins to read.
 Reader thread 2 begins to read.
 Reader thread 3 begins to read.
-Reader thread 2 finished reading.
 Reader thread 1 finished reading.
+Reader thread 2 finished reading.
 Reader thread 4 begins to read.
 Reader thread 3 finished reading.
 Reader thread 4 finished reading.
@@ -207,29 +252,81 @@ Philosopher 1 is thinking.
 Philosopher 2 is thinking.
 Philosopher 3 is thinking.
 Philosopher 4 is thinking.
-Philosopher 4 is eating.
 Philosopher 1 is eating.
 Philosopher 3 is eating.
-Philosopher 0 is eating.
-Philosopher 4 is thinking.
-Philosopher 1 is thinking.
-Philosopher 0 is thinking.
-Philosopher 4 is eating.
 Philosopher 3 is thinking.
 Philosopher 2 is eating.
-Philosopher 1 is eating.
-Philosopher 4 is thinking.
-Philosopher 2 is thinking.
-Philosopher 3 is eating.
-Philosopher 2 is eating.
-Philosopher 0 is eating.
 Philosopher 1 is thinking.
-Philosopher 3 is thinking.
+Philosopher 0 is eating.
+Philosopher 0 is thinking.
+Philosopher 4 is eating.
+Philosopher 1 is eating.
 Philosopher 2 is thinking.
+Philosopher 1 is thinking.
+Philosopher 3 is eating.
+Philosopher 4 is thinking.
+Philosopher 0 is eating.
+Philosopher 2 is eating.
+Philosopher 3 is thinking.
 Philosopher 4 is eating.
 Philosopher 0 is thinking.
+Philosopher 4 is thinking.
+Philosopher 2 is thinking.
 Philosopher 1 is eating.
-Philosopher 0 is eating.
 Philosopher 3 is eating.
 Philosopher 2 is eating.
+Philosopher 0 is eating.
+Philosopher 4 is eating.
+Person 1 arrive at left side.
+Person 1 enters left narrow section.
+Person 2 arrive at left side.
+Person 3 arrive at left side.
+Person 4 arrive at left side.
+Person 1 enters middle section.
+Person 4 enters left narrow section.
+Person 5 arrive at left side.
+Person 6 arrive at left side.
+Person 7 arrive at left side.
+Person 4 enters middle section.
+Person 7 enters left narrow section.
+Person 8 arrive at left side.
+Person 9 arrive at left side.
+Person 10 arrive at left side.
+Person 1 crossed the bridge.
+Person 7 enters middle section.
+Person 8 enters left narrow section.
+Person 1 crossed the bridge.
+Person 4 crossed the bridge.
+Person 8 enters middle section.
+Person 9 enters left narrow section.
+Person 4 crossed the bridge.
+Person 7 crossed the bridge.
+Person 6 enters left narrow section.
+Person 9 enters middle section.
+Person 7 crossed the bridge.
+Person 8 crossed the bridge.
+Person 6 enters middle section.
+Person 5 enters left narrow section.
+Person 9 crossed the bridge.
+Person 8 crossed the bridge.
+Person 5 enters middle section.
+Person 10 enters left narrow section.
+Person 9 crossed the bridge.
+Person 6 crossed the bridge.
+Person 2 enters left narrow section.
+Person 10 enters middle section.
+Person 5 crossed the bridge.
+Person 3 enters left narrow section.
+Person 2 enters middle section.
+Person 6 crossed the bridge.
+Person 5 crossed the bridge.
+Person 3 enters middle section.
+Person 10 crossed the bridge.
+Person 10 crossed the bridge.
+Person 2 crossed the bridge.
+Person 3 crossed the bridge.
+Person 2 crossed the bridge.
+Person 3 crossed the bridge.
+All people crossed the bridge.
 */
+
