@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <string>
 #include <chrono>
+#include <semaphore>
 
 class CountingSemaphore {
 private:
@@ -77,7 +78,7 @@ void ReaderProc(ThreadParam p) {
     }
 }
 
-void WriteProc(ThreadParam p) {
+void WriterProc(ThreadParam p) {
     // Writer request
     print_msg("Writer thread " + std::to_string(p.id) + " sends W require...");
 
@@ -93,7 +94,7 @@ void WriteProc(ThreadParam p) {
 }
 
 void reader_writer() {
-    std::ifstream infile("test1.txt");
+    std::ifstream infile("course_experiment_3.txt");
     if (!infile.is_open()) {
         std::cerr << "Error opening test1.txt" << std::endl;
     }
@@ -130,15 +131,15 @@ const int N = 5;
 std::mutex forks[N];
 
 // Trying C++20 hahaha
-std::count_semaphore<4> room(4);
+std::counting_semaphore<4> room(4);
 
 void philosopher(int id) {
     int left = id;
     int right = (id + 1) % N;
 
-    while (true) {
+    for (int meal = 0; meal < 3; ++meal) {
         // Thinking
-        std::cout << "Philosopher " << id << " is thinking.\n";
+        print_msg("Philosopher " + std::to_string(id) + " is thinking.");
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         // Enter dining room
@@ -146,10 +147,10 @@ void philosopher(int id) {
 
         // Pick up forks
         forks[left].lock();
-        forks[rigth].lock();
+        forks[right].lock();
 
         // Eat
-        std::cout << "Philosopher " << id << " is eating.\n";
+        print_msg("Philosopher " + std::to_string(id) + " is eating.");
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         // Put down forks
@@ -176,3 +177,39 @@ int main() {
 
     return 0;
 }
+
+/*
+PS C:\Users\13647\OneDrive\Desktop\MiMundo\2026 Spring\operation_system> ./run
+Reader Priority:
+All reader and writer have been finished operating
+Philosopher 0 is thinking.
+Philosopher 1 is thinking.
+Philosopher 2 is thinking.
+Philosopher 3 is thinking.
+Philosopher 4 is thinking.
+Philosopher 3 is eating.
+Philosopher 2 is eating.
+Philosopher 3 is thinking.
+Philosopher 2 is thinking.
+Philosopher 1 is eating.
+Philosopher 1 is thinking.
+Philosopher 0 is eating.
+Philosopher 0 is thinking.
+Philosopher 4 is eating.
+Philosopher 3 is eating.
+Philosopher 4 is thinking.
+Philosopher 2 is eating.
+Philosopher 3 is thinking.
+Philosopher 2 is thinking.
+Philosopher 1 is eating.
+Philosopher 1 is thinking.
+Philosopher 0 is eating.
+Philosopher 4 is eating.
+Philosopher 0 is thinking.
+Philosopher 4 is thinking.
+Philosopher 3 is eating.
+Philosopher 2 is eating.
+Philosopher 1 is eating.
+Philosopher 0 is eating.
+Philosopher 4 is eating.
+*/
